@@ -6,9 +6,11 @@ type ApiServer struct {
 	Address string
 }
 
-func (s ApiServer) NewServer(address string) *ApiServer {
+func NewServer(address string) *ApiServer {
 	return &ApiServer{Address: address}
 }
+
+func (s )
 
 func TestModule() {
 	fmt.Println("Hello from app")
