@@ -1,6 +1,9 @@
 package app
 
-import "fmt"
+import (
+	"log"
+	"net/http"
+)
 
 type ApiServer struct {
 	Address string
@@ -10,8 +13,8 @@ func NewServer(address string) *ApiServer {
 	return &ApiServer{Address: address}
 }
 
-func (s )
+func (s *ApiServer) Run() {
+	log.Print("running... ")
 
-func TestModule() {
-	fmt.Println("Hello from app")
+	http.ListenAndServe(s.Address, nil)
 }
