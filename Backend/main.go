@@ -1,9 +1,23 @@
 package main
 
-import "steplet/webserver/cmd/app"
+import (
+	"log"
+	"steplet/webserver/cmd/app"
+)
 
 func main() {
-	server := app.NewServer(":8080")
+	store, err := app.NewPostgesStor()
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	store.InitUserTable()
+
+	if err != nil {
+		log.Fatal(err)
+	}
+	server := app.NewServer(":8080", store)
 
 	server.Run()
 }

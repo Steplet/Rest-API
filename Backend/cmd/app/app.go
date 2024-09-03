@@ -9,8 +9,16 @@ import (
 	"strings"
 )
 
-func NewServer(address string) *ApiServer {
-	return &ApiServer{Address: address}
+type ApiServer struct {
+	address string
+	store   Storage
+}
+
+func NewServer(address string, store Storage) *ApiServer {
+	return &ApiServer{
+		address: address,
+		store:   store,
+	}
 }
 
 func (s *ApiServer) Run() {
@@ -21,7 +29,7 @@ func (s *ApiServer) Run() {
 
 	log.Print("Server running on port 8080 ... ")
 
-	http.ListenAndServe(s.Address, mux)
+	http.ListenAndServe(s.address, mux)
 }
 
 func (s *ApiServer) handelUsers(w http.ResponseWriter, r *http.Request) error {
@@ -46,8 +54,28 @@ func (s *ApiServer) handelUsers(w http.ResponseWriter, r *http.Request) error {
 		return s.handelGetUserById(w, r)
 	}
 
+	if r.Method == "POST" {
+
+		return s.handelCreateUser(w, r)
+	}
+
 	return fmt.Errorf("bad method %s", r.Method)
 
+}
+
+func (s *ApiServer) handelCreateUser(w http.ResponseWriter, r *http.Request) error {
+	user := TransferUser{}
+
+	json.NewDecoder(r.Body).Decode(&user)
+
+	log.Printf("Got a new user %+v", user)
+
+	err := s.store.CreateUser(&user)
+
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (s *ApiServer) handelGetUsers(w http.ResponseWriter, r *http.Request) error {
@@ -80,10 +108,6 @@ func makeHTTPHandlFunc(f apiFunc) http.HandlerFunc {
 			WriteJSON(w, http.StatusBadRequest, ApiError{Error: err.Error()})
 		}
 	}
-}
-
-type ApiServer struct {
-	Address string
 }
 
 func getUserIdFromPath(path string) (int, error) {

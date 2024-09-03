@@ -7,6 +7,10 @@ type User struct {
 	Name string `json:"name"`
 }
 
+type TransferUser struct {
+	Name string `json:"name"`
+}
+
 func NewUser(name string) *User {
 	return &User{Name: name, ID: rand.Intn(100)}
 }
