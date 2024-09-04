@@ -26,6 +26,7 @@ func (s *ApiServer) Run() {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/user/", makeHTTPHandlFunc(s.handelUsers))
+	// TODO other routs ...
 
 	log.Print("Server running on port 8080 ... ")
 
@@ -36,30 +37,51 @@ func (s *ApiServer) handelUsers(w http.ResponseWriter, r *http.Request) error {
 
 	path := r.URL.Path
 
-	if r.Method == "GET" && path == "/user/" {
-		log.Printf("Catch a  %s path", path)
-		return s.handelGetUsers(w, r)
-	}
+	if path == "/user/" {
 
-	if r.Method == "GET" {
+		if r.Method == "GET" {
+			log.Printf("Catch a  %s path with method %s", path, r.Method)
 
+			return s.handelGetUsers(w, r)
+
+		} else if r.Method == "POST" {
+			log.Printf("Catch a  %s path with method %s", path, r.Method)
+
+			return s.handelCreateUser(w, r)
+
+		} else {
+
+			return fmt.Errorf("method %s not allowed by url %s", r.Method, path)
+		}
+
+	} else {
 		id, err := getUserIdFromPath(path)
 
 		if err != nil {
 			return err
 		}
 
-		log.Printf("Catch a  %s path with id = %d", path, id)
+		if r.Method == "GET" {
+			log.Printf("Catch a  %s path with method %s", path, r.Method)
 
-		return s.handelGetUserById(w, r)
+			return s.handelGetUserById(w, r, id)
+
+		} else if r.Method == "DELETE" {
+			log.Printf("Catch a  %s path with method %s", path, r.Method)
+
+			return s.handelDeleteUser(w, r, id)
+
+		} else if r.Method == "PATCH" {
+			log.Printf("Catch a  %s path with method %s", path, r.Method)
+
+			return s.handelUpdateUser(w, r, id)
+
+		} else {
+
+			return fmt.Errorf("method %s not allowed by url %s", r.Method, path)
+		}
+
 	}
-
-	if r.Method == "POST" {
-
-		return s.handelCreateUser(w, r)
-	}
-
-	return fmt.Errorf("bad method %s", r.Method)
 
 }
 
@@ -75,24 +97,60 @@ func (s *ApiServer) handelCreateUser(w http.ResponseWriter, r *http.Request) err
 	if err != nil {
 		return err
 	}
-	return nil
+	return WriteJSON(w, http.StatusOK, 0)
+}
+
+func (s *ApiServer) handelUpdateUser(w http.ResponseWriter, r *http.Request, id int) error {
+	user := TransferUser{}
+
+	json.NewDecoder(r.Body).Decode(&user)
+
+	log.Printf("Got an update user name %+v with id = %d", user, id)
+
+	err := s.store.UpdateUser(id, &user)
+
+	if err != nil {
+		return err
+	}
+	return WriteJSON(w, http.StatusOK, 0)
+}
+
+func (s *ApiServer) handelDeleteUser(w http.ResponseWriter, r *http.Request, id int) error {
+
+	err := s.store.DeleteUser(id)
+
+	if err != nil {
+		return err
+	}
+
+	return WriteJSON(w, http.StatusOK, 0)
 }
 
 func (s *ApiServer) handelGetUsers(w http.ResponseWriter, r *http.Request) error {
-	user1 := NewUser("Artem")
-	user2 := NewUser("Ivan")
-	users := []User{*user1, *user2}
+
+	users, err := s.store.GetUsers()
+
+	if err != nil {
+		return err
+	}
 	return WriteJSON(w, http.StatusOK, users)
 }
 
-func (s *ApiServer) handelGetUserById(w http.ResponseWriter, r *http.Request) error {
-	user := NewUser("Man")
+func (s *ApiServer) handelGetUserById(w http.ResponseWriter, r *http.Request, id int) error {
+	user, err := s.store.GetUserById(id)
+
+	if err != nil {
+
+		return err
+	}
+
 	return WriteJSON(w, http.StatusOK, user)
 }
 
 func WriteJSON(w http.ResponseWriter, status int, v any) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
+
 	return json.NewEncoder(w).Encode(v)
 }
 
